@@ -1,8 +1,8 @@
 import unittest
 import pandas as pd
-from prepare_data import read_data_and_check_for_invalid_sources as reader
+from zfilters.prepare_data import read_data_and_check_for_invalid_sources as reader
 
-from filtering_basic_z import BasicZFilter, process_sublog as basic_filter, process_sequential as process
+from zfilters.filtering_basic_z import apply_filter_wrapper as process
 from datetime import timedelta as td
 
 case_id = "case:concept:name"
@@ -17,11 +17,11 @@ def evaluate(data, expected_outcome, z, delta_t):
     expected[timestamp] = pd.to_datetime(expected[timestamp])
     df[timestamp] = pd.to_datetime(df[timestamp])
 
-    df = pd.DataFrame(process(df, z=z, timedelta=delta_t)).sort_values(
+    df = pd.DataFrame(process(df, z=z, time_delta=delta_t)).sort_values(
         by=[case_id, timestamp]).reset_index(drop=True)
 
     if expected.empty:
-        assert (df.empty)
+        assert df.empty
     else:
         assert (df.equals(expected))
 
@@ -31,7 +31,7 @@ class TestZBasic(unittest.TestCase):
     def test_filtered_log_stays_equal(self):
         log = reader()
         log = log.sort_values(by=[case_id, timestamp], kind="mergesort").reset_index(drop=True)
-        df = pd.DataFrame(process(df=log.copy(), timedelta=td(hours=72), z=1))
+        df = pd.DataFrame(process(df=log.copy(), time_delta=td(hours=72), z=1))
         df_sorted = df.sort_values(
             by=[case_id, timestamp], kind="mergesort"
         ).reset_index(drop=True)
@@ -108,18 +108,16 @@ class TestZBasic(unittest.TestCase):
 
         evaluate(sample_data, expected, z=2, delta_t=td(days=28))
 
-
-
     def test_z_and_t_combined(self):
         sample_data = {
             case_id: [1, 2, 3, 4, 5],
             activity: ["A", "A", "A", "A", "A"],
             timestamp: ["2024-10-1", "2024-11-2", "2024-11-6", "2024-11-7", "2024-12-1"],
-            source: ["A", "A", "A", "A","A"]
+            source: ["A", "A", "A", "A", "A"]
         }
 
         expected = {
-            case_id: [3,4],
+            case_id: [3, 4],
             activity: ["A", "A"],
             timestamp: ["2024-11-6", "2024-11-7"],
             source: ["A", "A"]
@@ -127,13 +125,12 @@ class TestZBasic(unittest.TestCase):
 
         evaluate(sample_data, expected, z=2, delta_t=td(days=4))
 
-
     def test_mixed_up_timestamps(self):
         sample_data = {
             case_id: [1, 2, 3, 4, 5],
             activity: ["A", "A", "A", "A", "A"],
             timestamp: ["2024-11-1", "2024-10-30", "2024-12-3", "2024-11-7", "2024-12-1"],
-            source: ["A", "A", "A", "A","A"]
+            source: ["A", "A", "A", "A", "A"]
         }
 
         expected = {
@@ -147,17 +144,17 @@ class TestZBasic(unittest.TestCase):
 
     def test_empty_input_empty_output(self):
         sample_data = {
-                case_id: [],
-                activity: [],
-                timestamp: [],
-                source: []
-            }
+            case_id: [],
+            activity: [],
+            timestamp: [],
+            source: []
+        }
 
         expected = {
-                case_id: [],
-                activity: [],
-                timestamp: [],
-                source: []
-            }
+            case_id: [],
+            activity: [],
+            timestamp: [],
+            source: []
+        }
 
         evaluate(sample_data, expected, z=5, delta_t=td(days=100))

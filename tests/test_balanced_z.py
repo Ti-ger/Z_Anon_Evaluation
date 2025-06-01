@@ -1,15 +1,15 @@
 import unittest
-from prepare_data import read_data_and_check_for_invalid_sources as reader
+from zfilters.prepare_data import read_data_and_check_for_invalid_sources as reader
 from datetime import timedelta as td
 import pandas as pd
-from filtering_balanced_z import process_log_sequentially as process
-from datetime import timedelta as t
+from zfilters.filtering_balanced_z import apply_filter_wrapper as process
 
 # global variables for tests to not interfer with user changes
 case_id = "case:concept:name"
 activity = "concept:name"
 source = "org:group"
 timestamp = "time:timestamp"
+
 
 def evaluate(data, expected_data, z, delta_t):
     df = pd.DataFrame(data)
@@ -20,9 +20,8 @@ def evaluate(data, expected_data, z, delta_t):
     df = pd.DataFrame(process(df, z=z, time_delta=delta_t)).sort_values(
         by=[case_id, timestamp]).reset_index(drop=True)
 
-    print(df)
     if expected.empty:
-        assert (df.empty)
+        assert df.empty
     else:
         assert (df.equals(expected))
 
@@ -86,11 +85,12 @@ class TestZBalanced(unittest.TestCase):
         expected = {
             case_id: [2, 3, 4],
             activity: ["A", "A", "A"],
-            timestamp: [ "2024-11-6", "2024-11-10", "2024-11-10"],
+            timestamp: ["2024-11-6", "2024-11-10", "2024-11-10"],
             source: ["A", "A", "A"]
         }
 
         evaluate(sample_data, expected, z=3, delta_t=td(days=4))
+
     def test_does_delta_t_threshold_apply(self):
         sample_data = {
             case_id: [1, 2, 3, 4, 5],
@@ -102,7 +102,7 @@ class TestZBalanced(unittest.TestCase):
         expected = {
             case_id: [2, 3, 4, 5],
             activity: ["A", "A", "A", "A"],
-            timestamp: ["2024-11-3", "2024-11-5","2024-11-5", "2024-11-6"],
+            timestamp: ["2024-11-3", "2024-11-5", "2024-11-5", "2024-11-6"],
             source: ["A", "A", "A", "A"]
         }
 
@@ -142,14 +142,12 @@ class TestZBalanced(unittest.TestCase):
 
         evaluate(sample_data, expected, z=2, delta_t=td(days=28))
 
-
-
     def test_z_and_t_combined(self):
         sample_data = {
             case_id: [1, 2, 3, 4, 5],
             activity: ["A", "A", "A", "A", "A"],
             timestamp: ["2024-10-1", "2024-11-2", "2024-11-6", "2024-11-7", "2024-12-1"],
-            source: ["A", "A", "A", "A","A"]
+            source: ["A", "A", "A", "A", "A"]
         }
 
         expected = {
@@ -161,13 +159,12 @@ class TestZBalanced(unittest.TestCase):
 
         evaluate(sample_data, expected, z=2, delta_t=td(days=4))
 
-
     def test_mixed_up_timestamps(self):
         sample_data = {
             case_id: [1, 1, 2, 1, 2],
             activity: ["A", "A", "A", "A", "A"],
             timestamp: ["2024-11-1", "2024-10-30", "2024-12-3", "2024-11-7", "2024-12-1"],
-            source: ["A", "A", "A", "A","A"]
+            source: ["A", "A", "A", "A", "A"]
         }
 
         expected = {
@@ -181,17 +178,17 @@ class TestZBalanced(unittest.TestCase):
 
     def test_empty_input_empty_output(self):
         sample_data = {
-                case_id: [],
-                activity: [],
-                timestamp: [],
-                source: []
-            }
+            case_id: [],
+            activity: [],
+            timestamp: [],
+            source: []
+        }
 
         expected = {
-                case_id: [],
-                activity: [],
-                timestamp: [],
-                source: []
-            }
+            case_id: [],
+            activity: [],
+            timestamp: [],
+            source: []
+        }
 
         evaluate(sample_data, expected, z=5, delta_t=td(days=100))
