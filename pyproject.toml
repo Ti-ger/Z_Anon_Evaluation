@@ -1,0 +1,7 @@
+[project]
+name = "z_anon_evaluation"
+version = "0.1.0"
+description = "z-Anonymity filtering and evaluation tool for Process Discovery"
+
+[tool.setuptools.packages.find]
+where = ["src"]

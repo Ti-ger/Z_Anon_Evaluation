@@ -8,7 +8,7 @@ def find_source(path, name):
 
 file_name = "Sepsis Cases - Event Log.xes"
 project_path = os.getcwd()
-source_path = find_source("/home/fabian/Github/", file_name)
+source_path = find_source(os.getcwd(), file_name)
 activity = "concept:name"
 timestamp = "time:timestamp"
 source = "org:group"
