@@ -60,8 +60,6 @@ def prepare_data(events, data, attributes_local):
             data[col_name] = data[filter_col].apply(lambda row: row.tolist(), axis=1)
             data[col_name] = data[col_name].apply(rm_nans)
 
-    print(f"{attributes_local}\n-----------------------------------------------------")
-    print(data)
     return data[attributes_local]
 
 
@@ -203,7 +201,7 @@ def risk_re_ident_quant(z,
                         df_data: pandas.DataFrame,
                         points_relative: list[float],
                         points_absoulute: list[int],
-                        projection='A'):
+                        projection=['A']):
     pd.options.mode.chained_assignment = None
 
     ################################################
@@ -240,46 +238,48 @@ def risk_re_ident_quant(z,
 
     # create absolute values for every realitve one depending of max trace length
     values_relative = [math.ceil(i * number_points_total) for i in sorted(points_relative)]
-    # # # # # # # # # # # # # # # # # # # # #
-    # Data preparation concatenating events
-    quasi_identifier, events_to_concat = generate_projection_view(projection, case_attribute, activity,
-                                                                  event_attribute, timestamp)
-    # identifier attributes
-    attributes = unique_identifier + quasi_identifier
-
-    df_aggregated_data = prepare_data(events_to_concat, df_data, attributes)
 
 
     def _run_unicity(val):
         return calculate_unicity(df_aggregated_data, quasi_identifier, events_to_concat, val)
 
-    if multiprocessing:
-        #create threadpool
-        with ThreadPoolExecutor() as executor:
-            # spawn a thread for every relative point
-            futures_rel = [executor.submit(_run_unicity, val) for val in values_relative]
-            # spwan a thread for every absolute point
-            futures_abs = [executor.submit(_run_unicity, val) for val in points_absoulute]
-
-            # reap results
-            result_relative_points = [f.result() for f in futures_rel]
-            result_absolute_points = [f.result() for f in futures_abs]
-    else:
-        result_relative_points = [_run_unicity(val) for val in values_relative]
-        result_absolute_points = [_run_unicity(val) for val in points_absoulute]
-
-        # Create result dict
     result_dict = {
-        'z': [z],
-        'delta_t': [delta_t.total_seconds() / 3600]
+        'z': z,
+        'delta_t': delta_t.total_seconds()
     }
+    # do this for every projection
 
-    for i, r in zip(sorted(points_relative), result_relative_points):
-        colname = f'RISK_{projection}_{i:.2f}'
-        result_dict[colname] = [r[1] if isinstance(r, tuple) else r]
+    for i, p in enumerate(projection):
+        is_last = i == len(projection) - 1
 
-    for i, r in zip(points_absoulute, result_absolute_points):
-        colname = f'RISK_{projection}_{i}'
-        result_dict[colname] = [r[1] if isinstance(r, tuple) else r]
+        # # # # # # # # # # # # # # # # # # # # #
+        # Data preparation concatenating events
+        quasi_identifier, events_to_concat = generate_projection_view(
+            p, case_attribute, activity, event_attribute, timestamp
+        )
+        attributes = unique_identifier + quasi_identifier
 
-    return pd.DataFrame(result_dict)
+        # Nur kopieren, wenn nicht letzter Durchlauf
+        df_aggregated_data = prepare_data(events_to_concat, df_data.copy() if not is_last else df_data, attributes)
+
+        if multiprocessing:
+            with ThreadPoolExecutor() as executor:
+                futures_rel = [executor.submit(_run_unicity, val) for val in values_relative]
+                futures_abs = [executor.submit(_run_unicity, val) for val in points_absoulute]
+
+                result_relative_points = [f.result() for f in futures_rel]
+                result_absolute_points = [f.result() for f in futures_abs]
+        else:
+            result_relative_points = [_run_unicity(val) for val in values_relative]
+            result_absolute_points = [_run_unicity(val) for val in points_absoulute]
+
+        # append result dict - relative points and results
+        for i, r in zip(sorted(points_relative), result_relative_points):
+            colname = f'RISK_{p}_{i:.2f}'
+            result_dict[colname] = r[1] if isinstance(r, tuple) else r
+
+        for i, r in zip(points_absoulute, result_absolute_points):
+            colname = f'RISK_{p}_{i}'
+            result_dict[colname] = r[1] if isinstance(r, tuple) else r
+
+    return result_dict

@@ -86,6 +86,15 @@ def process_sublog(group_name, sublog_df, delta_t, z):
     return pd.DataFrame(result_rows)
 
 
+def apply_filter_wrapper(df, time_delta, z):
+
+    # use mergesort as it is one of the only stable alogrithms available
+    df = df.sort_values(by=timestamp, kind="mergesort")
+
+    df = process_log_sequentially(df, time_delta, z)
+
+    return df.sort_values(by=[case_id, timestamp], kind="mergesort")
+
 def process_log_sequentially(df, time_delta, z):
     source_map = {}
     output = {
@@ -95,8 +104,6 @@ def process_log_sequentially(df, time_delta, z):
         source: []
     }
 
-    # use mergesort as it is one of the only stable alogrithms available
-    df = df.sort_values(by=timestamp, kind="mergesort")
     for _, row in df.iterrows():
         t = pd.to_datetime(row[timestamp])  # make sure timestamp is datetime oject
         u = row[case_id]

@@ -1,13 +1,11 @@
 import pandas as pd
-import sys
 from datetime import timedelta as td
 
-import pm4py
 from pm4py import read_xes
 
 from constants import source_path, activity, timestamp, source, case_id, req_cols
-from filtering_basic_z import process_sublog as basic_filtering
-from filtering_balanced_z import process_sublog as balanced_filtering
+from zfilters.filtering_basic_z import process_sublog as basic_filtering
+from zfilters.filtering_balanced_z import process_sublog as balanced_filtering
 from concurrent.futures import ThreadPoolExecutor
 
 
