@@ -1,13 +1,11 @@
-import os
 import sys
-import re
 
 import pandas as pd
 from datetime import timedelta as td
 from tqdm import tqdm
 from pm4py import discover_petri_net_inductive, fitness_alignments, precision_alignments, generalization_tbr, \
     simplicity_petri_net, convert_to_event_log
-from constants import multiprocessing, case_id, file_name, project_path, write_middle_results as m_res, \
+from constants import multiprocessing, case_id, file_name, res_path, write_middle_results as m_res, \
     abstract_timestamps
 from re_identification_risk.utils import quantifyer
 from re_identification_risk.abstraction_timestamp import run_abstraction
@@ -35,7 +33,7 @@ def evaluate_log_for_risk(o_log: pd.DataFrame, z_values: list[int], dt_values: l
 
             if m_res:
                 name = file_name.removesuffix('.xes')
-                pd.DataFrame(result).to_csv(f"Risk{name}.csv")
+                pd.DataFrame(result).to_csv(f"{res_path}/Risk{name}.csv")
 
     return pd.DataFrame(result)
 
@@ -86,7 +84,7 @@ def evaluate_log_for_model_quality(o_log: pd.DataFrame, z_values: list[int], dt_
             # write results if wanted
             if m_res:
                 name = file_name.removesuffix('.xes')
-                pd.DataFrame(results).to_csv(f"Quality{name}.csv")
+                pd.DataFrame(results).to_csv(f"{res_path}/Quality{name}.csv")
 
     return pd.DataFrame(results)
 
