@@ -55,7 +55,7 @@ class BalancedZFilter:
                 self.c[a] -= 1
 
         # clear buffer from old entries
-        self.buffer[a] = deque([(bt, bu, ba) for (bt, bu, ba) in self.buffer[a] if (t - bt) <= self.delta_t])
+        self.buffer[a] = deque([(buff_t, buff_u, buff_a) for (buff_t, buff_u, buff_a) in self.buffer[a] if (t - buff_t) <= self.delta_t])
 
         # if c[a] ≥ z → publish buffer
         if self.c[a] >= self.z:
@@ -106,13 +106,13 @@ def process_log_sequentially(df, time_delta, z):
         if s not in source_map:
             source_map[s] = BalancedZFilter(delta_t=time_delta, z=z)
 
-        # can yield none values
-
-        for (out_u, out_a, out_t) in source_map[s].process_event(t=t, u=u, a=a):
+        #append every output to output list
+        for (out_t, out_u, out_a) in source_map[s].process_event(t=t, u=u, a=a):
             output[case_id].append(out_u)
             output[activity].append(out_a)
             output[timestamp].append(pd.to_datetime(out_t))
             output[source].append(s)
 
+    # return outputted list
     return pd.DataFrame(output)
 
