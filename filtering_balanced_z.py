@@ -5,7 +5,7 @@ import pandas as pd
 
 
 class BalancedZFilter:
-    def __init__(self, delta_t: int, z: int):
+    def __init__(self, delta_t: timedelta, z: int):
         # time window
         self.delta_t = delta_t
 
@@ -24,7 +24,7 @@ class BalancedZFilter:
     def process_event(self, t, u, a):
         outputs = []
 
-        # Attribut noch nie gesehen
+        # Attribute is not known
         if a not in self.H:
             self.H.add(a)
             self.V[a].add(u)
@@ -32,7 +32,7 @@ class BalancedZFilter:
             self.buffer[a].append((t, u, a))
             self.c[a] = 1
 
-        # Attribut existiert schon
+        # Attribute exists
         else:
             if u not in self.V[a]:
                 self.V[a].add(u)
@@ -40,10 +40,11 @@ class BalancedZFilter:
                 self.LRU[a].append((t, u))
                 self.buffer[a].append((t, u, a))
             else:
-                # Update timestamp des Nutzers in LRU (kein c-Inkrement!)
+                # Update timestamp of the user in the LRU (no c-increment!)
                 self.LRU[a] = deque((t1, u1) for (t1, u1) in self.LRU[a] if u1 != u)
                 self.LRU[a].append((t, u))
-                # keine neue Anonymität → kein Zuwachs
+
+                # add to buffer
                 self.buffer[a].append((t, u, a))
 
         # evict old events
@@ -56,7 +57,7 @@ class BalancedZFilter:
         # clear buffer from old entries
         self.buffer[a] = deque([(bt, bu, ba) for (bt, bu, ba) in self.buffer[a] if (t - bt) <= self.delta_t])
 
-        # Wenn jetzt c[a] ≥ z → Buffer ausgeben
+        # if c[a] ≥ z → publish buffer
         if self.c[a] >= self.z:
             outputs.extend(self.buffer[a])
             self.buffer[a].clear()
@@ -83,3 +84,35 @@ def process_sublog(group_name, sublog_df, delta_t, z):
             })
 
     return pd.DataFrame(result_rows)
+
+
+def process_log_sequentially(df, time_delta, z):
+    source_map = {}
+    output = {
+        case_id: [],
+        activity: [],
+        timestamp: [],
+        source: []
+    }
+
+    # use mergesort as it is one of the only stable alogrithms available
+    df = df.sort_values(by=timestamp, kind="mergesort")
+    for _, row in df.iterrows():
+        t = pd.to_datetime(row[timestamp])  # make sure timestamp is datetime oject
+        u = row[case_id]
+        a = row[activity]
+        s = row[source]
+
+        if s not in source_map:
+            source_map[s] = BalancedZFilter(delta_t=time_delta, z=z)
+
+        # can yield none values
+
+        for (out_u, out_a, out_t) in source_map[s].process_event(t=t, u=u, a=a):
+            output[case_id].append(out_u)
+            output[activity].append(out_a)
+            output[timestamp].append(pd.to_datetime(out_t))
+            output[source].append(s)
+
+    return pd.DataFrame(output)
+
