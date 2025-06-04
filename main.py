@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from zfilters.prepare_data import read_data_and_check_for_invalid_sources
 from evaluation.evaluate_model_quality import evaluate_log_for_model_quality as eval_quality, evaluate_log_for_risk as eval_risk
 from zfilters.filtering_balanced_z import apply_filter_wrapper as balanced_filter
-from constants import res_path, file_name, abstract_timestamps, set_risk_assesment_repitionions
+from constants import res_path, file_name, abstract_timestamps
 
 # set recursion limit for pm4py algorithms
 sys.setrecursionlimit(5000)
@@ -26,7 +26,6 @@ def main():
     delta_t_values = [td(days=3), td(days=5)]
     risk_assessment_repitition = 4
 
-    set_risk_assesment_repitionions(risk_assessment_repitition)
     with ThreadPoolExecutor() as executor:
         future_risk = executor.submit(run_eval_risk, original_df, z_values, delta_t_values, relative_risk_ass,abs_risk_ass,risk_assessment_repitition)
         future_quality = executor.submit(run_eval_quality, original_df, z_values, delta_t_values)

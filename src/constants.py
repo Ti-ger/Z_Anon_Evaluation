@@ -18,7 +18,7 @@ case_id = "case:concept:name"
 req_cols = [case_id, activity, timestamp, source]
 
 # results path
-res_path = f"{project_path}/res/"
+res_path = f"{project_path}/res"
 if not os.path.exists(res_path):
     os.makedirs(res_path)
 
