@@ -6,16 +6,16 @@ from tqdm import tqdm
 from pm4py import discover_petri_net_inductive, fitness_alignments, precision_alignments, generalization_tbr, \
     simplicity_petri_net, convert_to_event_log
 from constants import multiprocessing, case_id, file_name, res_path, write_middle_results as m_res, \
-    abstract_timestamps
+    abstract_timestamps, RISK_ASSESSMENT_REPETITIONS
 from re_identification_risk.utils import quantifyer
 from re_identification_risk.abstraction_timestamp import run_abstraction
 
 
 def evaluate_log_for_risk(o_log: pd.DataFrame, z_values: list[int], dt_values: list[td], filter,
-                          relative_points: list[float], abs_points, projection: list = []):
+                          relative_points: list[float], abs_points, repetitions: int, projection: list = []):
     result = []
     # 1. filter all logs up front in order to make things faster afterwards
-    for z in tqdm(z_values, desc="RISK: z-values"):
+    for z in tqdm(z_values, desc=f"RISK: z-values, th repetition"):
         for t in tqdm(dt_values, desc="RISK: Delta t -thresholds"):
             # 1. filter event log with function pointer filter
             filtered_df = filter(o_log.copy(), t, z)
@@ -28,8 +28,10 @@ def evaluate_log_for_risk(o_log: pd.DataFrame, z_values: list[int], dt_values: l
             # 2. convert to event log (just to make sure)
             # event_log = convert_to_event_log(filtered_df)
 
-            result.append(
-                quantifyer(filtered_df, z, t, p_relative=relative_points, p_absolute=abs_points, projection=projection))
+            for i in range(repetitions):
+                print(f" Repetitions {repetitions}")
+                result.append(
+                    quantifyer(filtered_df, z, t, p_relative=relative_points, p_absolute=abs_points, repetition=i, projection=projection))
 
             if m_res:
                 name = file_name.removesuffix('.xes')

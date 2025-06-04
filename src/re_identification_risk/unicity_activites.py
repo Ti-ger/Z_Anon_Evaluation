@@ -201,6 +201,7 @@ def risk_re_ident_quant(z,
                         df_data: pandas.DataFrame,
                         points_relative: list[float],
                         points_absoulute: list[int],
+                        repetition: int,
                         projection=['A']):
     pd.options.mode.chained_assignment = None
 
@@ -245,7 +246,8 @@ def risk_re_ident_quant(z,
 
     result_dict = {
         'z': z,
-        'delta_t': delta_t.total_seconds()
+        'delta_t': delta_t.total_seconds(),
+        "i": repetition
     }
     # do this for every projection
 
@@ -259,7 +261,7 @@ def risk_re_ident_quant(z,
         )
         attributes = unique_identifier + quasi_identifier
 
-        # Nur kopieren, wenn nicht letzter Durchlauf
+        # copy only if not last repetition
         df_aggregated_data = prepare_data(events_to_concat, df_data.copy() if not is_last else df_data, attributes)
 
         if multiprocessing:
