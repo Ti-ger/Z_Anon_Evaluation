@@ -36,17 +36,5 @@ abstract_timestamps = True
 # abtraction_level = "d"
 # abstractionLevel =
 
-# default repetitions = 1
-RISK_ASSESSMENT_REPETITIONS = 1
-
-def set_risk_assesment_repitionions(i: int):
-    if i < 1:
-        raise Exception("Repetitions should not be below '1'.")
-    # refer to global variable
-    global RISK_ASSESSMENT_REPETITIONS
-
-    # set global variable to i
-    RISK_ASSESSMENT_REPETITIONS = i
-
 
 
