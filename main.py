@@ -10,31 +10,39 @@ from constants import res_path, file_name, abstract_timestamps
 # set recursion limit for pm4py algorithms
 sys.setrecursionlimit(5000)
 
+
 def run_eval_quality(original_df, z_values, delta_t_values):
     return eval_quality(original_df.copy(), z_values.copy(), dt_values=delta_t_values.copy(), filter=balanced_filter)
+
 
 def run_eval_risk(original_df, z_values, delta_t_values, rel_risk, abs_risk, repetitions: int):
     return eval_risk(original_df, z_values, delta_t_values, filter=balanced_filter,
                      relative_points=rel_risk, abs_points=abs_risk, repetitions=repetitions, projection=['A', 'E'])
 
+
 def main():
     original_df = read_data_and_check_for_invalid_sources()
 
-    z_values = [30]
-    relative_risk_ass = []  # e.g. [0.3, 0.6, 0.9]
-    abs_risk_ass = [5]      # e.g. [1, 5, 8]
-    delta_t_values = [td(days=3), td(days=5)]
-    risk_assessment_repitition = 4
+    for z in range(1, 100):
+        z_values = [z]
+        relative_risk_ass = []  # e.g. [0.3, 0.6, 0.9]
+        abs_risk_ass = [1, 3, 5, 7, 10]      # e.g. [1, 5, 8]
+        delta_t_values = [td(days=3)]
+        risk_assessment_repitition = 10
 
-    with ThreadPoolExecutor() as executor:
-        future_risk = executor.submit(run_eval_risk, original_df, z_values, delta_t_values, relative_risk_ass,abs_risk_ass,risk_assessment_repitition)
-        future_quality = executor.submit(run_eval_quality, original_df, z_values, delta_t_values)
+        with ThreadPoolExecutor() as executor:
+            future_risk = executor.submit(run_eval_risk, original_df, z_values, delta_t_values,
+                                          relative_risk_ass, abs_risk_ass, risk_assessment_repitition)
+            future_quality = executor.submit(
+                run_eval_quality, original_df, z_values, delta_t_values)
 
-        df_quality = future_quality.result()
-        df_risk = future_risk.result()
+            df_quality = future_quality.result()
+            df_risk = future_risk.result()
 
-    merged = df_quality.merge(df_risk, on=['z', 'delta_t'])
-    merged.to_csv(f"{res_path}/{file_name.removesuffix('.xes')}_{'generalized' if abstract_timestamps else ''}.csv")
+        merged = df_quality.merge(df_risk, on=['z', 'delta_t'])
+        merged.to_csv(
+            f"{res_path}/{file_name.removesuffix('.xes')}_balanced_{'generalized' if abstract_timestamps else ''}_z{z_values}.csv")
+
 
 if __name__ == "__main__":
     main()
